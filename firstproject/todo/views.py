@@ -1,6 +1,6 @@
 import json
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
@@ -10,6 +10,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from todo.choices import StatusChoices
 from todo.models import Task
+from todo.helper import update_obj
 
 
 User = get_user_model()
@@ -152,7 +153,7 @@ def list_create_task(request):
         
 
         #pagination
-        page_size = 1
+        page_size = 4
         paginator = Paginator(task_queryset,page_size)
 
 
@@ -199,7 +200,63 @@ def list_create_task(request):
 
         }, status=404)
 
+@login_required
+def retrieve_update_task(request,id):
+    if request.method == 'GET':
+        task = Task.objects.filter(user=request.user,id=id).first()
+        if task is None:
+            response_data = {
+                "status": "error",
+                "message": "Task with this id not found",
+                "payload": "{}"
+            }
+            return HttpResponse(json.dumps(response_data), content_type="application/json")
+        task_serialized = serialize("json",[task],fields = ('title', 'description','status','created_at','updated_at'))
+        return JsonResponse({
+            "status": "success",
+            "message": "Successfully retrieved",
+            "payload": json.loads(task_serialized)[0]
+        }, status=200)
+    
 
+    if request.method in ["PUT", "PATCH"]:
+        data = json.loads(request.body)
+        task = Task.objects.filter(user=request.user, id=id).first()
+        if task is None:
+            return JsonResponse({
+                "status": "error",
+                "message": f"Task with {id} id not found",
+                "payload": {}
+            }, status=404)
+        update_obj(task, **data)
+        task_serialized = serialize("json", [task])
+        return JsonResponse({
+            "status": "success",
+            "message": "Successfully updated",
+            "payload": json.loads(task_serialized)[0]
+        }, status=200)
+
+
+    if request.method == "DELETE":
+         
+            task = Task.objects.filter(user=request.user, id=id).first()
+            if task is None:
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"Task with {id} id not found",
+                    "payload": {}
+                }, status=404)
+            
+            task.delete()
+
+            return JsonResponse({
+            "status": "success",
+            "message": "Successfully updated",
+            "payload": {}
+        }, status=200)
+        
+    
+    
 
 
 

@@ -16,11 +16,12 @@ Including another URLconf
 """
 
 from django.urls import path
-from .views import register,login,logout,list_create_task
+from .views import register,login,logout,list_create_task,retrieve_update_task
 
 urlpatterns = [
     path("signup/", register),
     path("login/", login),
     path("logout/", logout),
     path("tasks/", list_create_task),
+    path("tasks/<int:id>", retrieve_update_task),
 ]
